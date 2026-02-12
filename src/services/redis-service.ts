@@ -36,7 +36,7 @@ export class RedisService {
       scanArgs.push('TYPE', type);
     }
 
-    const [newCursor, keys] = await redis.scan(cursor, ...scanArgs);
+    const [newCursor, keys] = await redis.scan(cursor, ...(scanArgs as any));
     
     // Parallel fetch types for found keys to display in UI
     const pipeline = redis.pipeline();
