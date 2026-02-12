@@ -1,65 +1,102 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState, useEffect } from 'react';
+import { 
+  Panel, 
+  Group as PanelGroup, 
+  Separator as PanelResizeHandle 
+} from 'react-resizable-panels';
+import { useRedisStore } from '@/store/use-redis-store';
+import { ConnectionSwitcher } from '@/components/dashboard/connection-switcher';
+import { KeyExplorer } from '@/components/dashboard/key-explorer';
+import { KeyEditor } from '@/components/dashboard/key-editor';
+import { RedisConsole } from '@/components/dashboard/redis-console';
+import { Database, Terminal as TerminalIcon } from 'lucide-react';
+
+export default function Dashboard() {
+  const { currentConnection, isConsoleOpen, setConsoleOpen } = useRedisStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="flex flex-col h-screen overflow-hidden bg-zinc-950 font-sans">
+      {/* Header / Connection Switcher */}
+      <header className="h-14 border-b border-zinc-800 flex items-center justify-between px-6 bg-zinc-900/80 backdrop-blur-md shrink-0 relative z-40">
+        <div className="flex items-center gap-3">
+          <div className="bg-red-600 p-1.5 rounded-lg shadow-lg shadow-red-900/20">
+            <Database className="w-5 h-5 text-white" />
+          </div>
+          <span className="font-bold text-lg tracking-tight">Redis<span className="text-red-500">Gui</span></span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        
+        <ConnectionSwitcher />
+        
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setConsoleOpen(!isConsoleOpen)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+              isConsoleOpen 
+                ? 'bg-red-600 text-white shadow-lg shadow-red-900/30' 
+                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+            }`}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <TerminalIcon className="w-4 h-4" />
+            Console
+          </button>
         </div>
+      </header>
+
+      <main className="flex-1 min-h-0 relative">
+        {currentConnection === null && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-500 bg-zinc-950/80 backdrop-blur-sm z-10">
+            <Database className="w-16 h-16 mb-4 opacity-20" />
+            <h2 className="text-xl font-medium text-zinc-300">No Connection Selected</h2>
+            <p className="mt-2 text-sm text-zinc-500">Select or add a Redis connection to start exploring.</p>
+          </div>
+        )}
+
+        <PanelGroup orientation="vertical">
+          <Panel defaultSize={75} minSize={30}>
+            <PanelGroup orientation="horizontal">
+              {/* Sidebar: Key Explorer */}
+              <Panel defaultSize={25} minSize={20} className="border-r border-zinc-800">
+                <KeyExplorer />
+              </Panel>
+              
+              <PanelResizeHandle className="w-1 bg-transparent hover:bg-red-500/20 transition-colors cursor-col-resize" />
+              
+              {/* Main Content: Key Editor */}
+              <Panel defaultSize={75} minSize={30}>
+                <KeyEditor />
+              </Panel>
+            </PanelGroup>
+          </Panel>
+
+          {isConsoleOpen && (
+            <>
+              <PanelResizeHandle className="h-1 bg-transparent hover:bg-red-500/20 transition-colors cursor-row-resize" />
+              <Panel defaultSize={25} minSize={10} className="border-t border-zinc-800 bg-zinc-900/50">
+                <RedisConsole />
+              </Panel>
+            </>
+          )}
+        </PanelGroup>
       </main>
+
+      <footer className="h-7 border-t border-zinc-800 bg-zinc-900 flex items-center justify-between px-4 text-[10px] text-zinc-500 shrink-0">
+        <div className="flex items-center gap-4">
+          <span>Connected: {currentConnection?.name || 'None'}</span>
+          <span>Host: {currentConnection?.host || 'N/A'}:{currentConnection?.port || 'N/A'}</span>
+        </div>
+        <div className="flex items-center gap-4 uppercase tracking-widest font-bold opacity-50">
+          <span>Production Ready v1.0</span>
+        </div>
+      </footer>
     </div>
   );
 }
