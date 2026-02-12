@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRedisStore } from '@/store/use-redis-store';
 import { X, Loader2, Save } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { useEffect } from 'react';
 
 export function CreateKeyModal({ onClose }: { onClose: () => void }) {
   const { currentConnection, setSelectedKey } = useRedisStore();
@@ -47,7 +49,15 @@ export function CreateKeyModal({ onClose }: { onClose: () => void }) {
     createMutation.mutate(formData);
   };
 
-  return (
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="bg-zinc-900 border border-zinc-800 w-full max-w-md rounded-2xl shadow-3xl overflow-hidden animate-in zoom-in-95 duration-300">
         <div className="flex items-center justify-between p-5 border-b border-zinc-800">
@@ -126,6 +136,7 @@ export function CreateKeyModal({ onClose }: { onClose: () => void }) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

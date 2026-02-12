@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRedisStore } from '@/store/use-redis-store';
 import { Plus, ChevronDown, Check, Trash2, Wifi, WifiOff, Loader2, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
 
 export function ConnectionSwitcher() {
   const [isOpen, setIsOpen] = useState(false);
@@ -164,7 +165,15 @@ function ConnectionModal({ onClose }: { onClose: () => void }) {
     saveMutation.mutate(formData);
   };
 
-  return (
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
       <div className="bg-zinc-900 border border-zinc-800 w-full max-w-lg rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300 overflow-hidden relative">
         {/* Header - Fixed */}
@@ -314,6 +323,7 @@ function ConnectionModal({ onClose }: { onClose: () => void }) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
