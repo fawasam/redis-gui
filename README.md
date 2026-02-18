@@ -73,5 +73,14 @@ A production-ready, high-performance Redis management GUI built with Next.js 15,
 - **POOLED CONNECTIONS**: Reuses Redis connections to prevent flooding.
 - **LAZY LOADING**: Key values and details are loaded only when selected.
 
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) for details.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
+
 ---
 Built with ❤️ by Antigravity
