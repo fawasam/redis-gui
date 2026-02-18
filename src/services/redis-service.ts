@@ -1,15 +1,17 @@
 import { getRedisConnection, ConnectionConfig } from '@/lib/redis-manager';
-import db from '@/lib/db';
+import connectDB from '@/lib/mongodb';
+import Connection from '@/models/Connection';
 import { decrypt } from '@/lib/encryption';
 import Redis from 'ioredis';
 
 export class RedisService {
   private static async getConfig(id: string): Promise<ConnectionConfig> {
-    const config = db.prepare('SELECT * FROM connections WHERE id = ?').get(id) as any;
+    await connectDB();
+    const config = await Connection.findById(id).lean() as any;
     if (!config) throw new Error('Connection not found');
 
     return {
-      id: config.id,
+      id: config._id.toString(),
       host: config.host,
       port: config.port,
       username: config.username,

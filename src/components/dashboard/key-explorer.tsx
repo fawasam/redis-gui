@@ -36,17 +36,23 @@ export function KeyExplorer() {
   const [allKeys, setAllKeys] = useState<any[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const { data, isLoading, isFetching, refetch } = useQuery({
+  const { data, isLoading, isFetching, refetch, error } = useQuery({
     queryKey: ['keys', currentConnection?.id, cursor, search, filterType],
     queryFn: async () => {
       if (!currentConnection) return null;
       const res = await fetch(`/api/redis/scan?cursor=${cursor}&pattern=${search || '*'}${filterType !== 'all' ? `&type=${filterType}` : ''}`, {
         headers: { 'x-connection-id': currentConnection.id }
       });
-      if (!res.ok) throw new Error('Failed to fetch keys');
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch keys');
+      }
+      
       return res.json();
     },
     enabled: !!currentConnection,
+    retry: false,
   });
 
   useEffect(() => {
@@ -128,7 +134,25 @@ export function KeyExplorer() {
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
-        {isLoading && cursor === '0' ? (
+        {error ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-3 px-4 text-center">
+            <div className="p-3 bg-red-500/10 rounded-full">
+              <Activity className="w-6 h-6 text-red-500" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-red-400">Connection Failed</p>
+              <p className="text-[10px] text-zinc-500 max-w-[200px] break-all">
+                {(error as Error).message}
+              </p>
+            </div>
+            <button 
+              onClick={handleRefresh}
+              className="mt-2 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-medium rounded-md transition-colors"
+            >
+              Retry Connection
+            </button>
+          </div>
+        ) : isLoading && cursor === '0' ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <Loader2 className="w-6 h-6 text-red-500 animate-spin" />
             <span className="text-xs text-zinc-500">Scanning keys...</span>

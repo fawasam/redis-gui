@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { RedisService } from '@/services/redis-service';
+import { getUserFromRequest } from '@/lib/auth-helper';
+import connectDB from '@/lib/mongodb';
+import Connection from '@/models/Connection';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -8,8 +11,19 @@ export async function GET(request: Request) {
   const pattern = searchParams.get('pattern') || '*';
   const type = searchParams.get('type') || undefined;
 
+  const user = await getUserFromRequest(request);
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   if (!connectionId) {
     return NextResponse.json({ error: 'Connection ID required' }, { status: 400 });
+  }
+
+  await connectDB();
+  const conn = await Connection.findOne({ _id: connectionId, userId: user.userId });
+  if (!conn) {
+    return NextResponse.json({ error: 'Connection not found or unauthorized' }, { status: 403 });
   }
 
   try {

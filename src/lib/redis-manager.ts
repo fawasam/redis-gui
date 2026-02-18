@@ -38,7 +38,15 @@ export async function getRedisConnection(config: ConnectionConfig): Promise<Redi
     username: config.username || undefined,
     password: config.password || undefined,
     db: config.db || 0,
-    tls: config.tls ? {} : undefined,
+    // Force IPv4 to avoid localhost resolution issues with tunnels
+    family: 4,
+    keepAlive: 10000,
+    enableOfflineQueue: false, // Fail immediately if not connected
+    commandTimeout: 3000, // Timeout commands after 3s
+    tls: config.tls ? {
+      rejectUnauthorized: false,
+      checkServerIdentity: () => undefined, // Skip hostname verification
+    } : undefined,
     retryStrategy: (times) => {
       if (times > 3) return null; // stop retrying after 3 attempts
       return Math.min(times * 50, 2000);
@@ -46,14 +54,32 @@ export async function getRedisConnection(config: ConnectionConfig): Promise<Redi
     connectTimeout: 5000,
   });
 
+  console.log(`[Redis ${config.id}] Connecting to ${config.host}:${config.port} (TLS: ${!!config.tls})...`);
+
+  // Attach a permanent error listener to prevent "Unhandled error event"
+  redis.on('error', (err) => {
+    console.warn(`[Redis ${config.id}] Error: ${err.message}`);
+  });
+  
+  redis.on('connect', () => console.log(`[Redis ${config.id}] Socket connected`));
+  redis.on('ready', () => console.log(`[Redis ${config.id}] Ready`));
+
   redisInstances.set(config.id, redis);
   
   return new Promise((resolve, reject) => {
-    redis.once('ready', () => resolve(redis));
-    redis.once('error', (err) => {
+    const onReady = () => {
+      resolve(redis);
+    };
+
+    const onError = (err: any) => {
+      // If initial connection fails, clean up and reject
       redisInstances.delete(config.id);
+      redis.disconnect(); // Stop retrying
       reject(err);
-    });
+    };
+
+    redis.once('ready', onReady);
+    redis.once('error', onError);
   });
 }
 
