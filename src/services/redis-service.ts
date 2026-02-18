@@ -111,6 +111,117 @@ export class RedisService {
     return await redis.set(key, value);
   }
 
+  static async getStats(id: string) {
+    const redis = await this.getConnection(id);
+    const info = await redis.info();
+    const commandStatsInfo = await redis.info('commandstats');
+    const clientsData = await redis.call('CLIENT', 'LIST');
+    
+    // Parse INFO command output
+    const infoLines = info.split('\r\n');
+    const infoData: any = {};
+    let section = '';
+    
+    for(const line of infoLines) {
+      if(line.startsWith('#')) {
+        section = line.substring(2).trim().toLowerCase();
+        infoData[section] = {};
+      } else if(line.includes(':')) {
+        const parts = line.split(':');
+        const key = parts[0];
+        const value = parts.slice(1).join(':'); // Handle values that might contain colons
+        
+        if(section && infoData[section]) {
+          infoData[section][key] = value.trim();
+        } else {
+          infoData[key] = value.trim();
+        }
+      }
+    }
+
+    // Parse COMMANDSTATS
+    const cmdLines = commandStatsInfo.split('\r\n');
+    const commandStats: any[] = [];
+    for(const line of cmdLines) {
+      if(line.includes(':')) {
+        // cmdstat_get:calls=1,usec=2,usec_per_call=2.00
+        const [key, val] = line.split(':');
+        const cmdName = key.replace('cmdstat_', '');
+        const stats: any = { name: cmdName };
+        val.split(',').forEach(part => {
+          const [k, v] = part.split('=');
+          stats[k] = parseFloat(v);
+        });
+        commandStats.push(stats);
+      }
+    }
+    // Sort by calls
+    commandStats.sort((a, b) => b.calls - a.calls);
+
+    // Parse CLIENT LIST output
+    // id=12 addr=127.0.0.1:56324 ...
+    // Some redis versions might return different formats, but key=value is standard
+    const clients = (clientsData as string).split('\n').filter(line => line.trim().length > 0).map(line => {
+      const clientObj: any = {};
+      line.split(' ').forEach(part => {
+        const [key, val] = part.split('=');
+        if(key && val) clientObj[key] = val;
+      });
+      return clientObj;
+    });
+
+    return {
+      info: infoData,
+      commandStats,
+      clients
+    };
+  }
+
+  static async updateHash(id: string, key: string, field: string, value: string) {
+    const redis = await this.getConnection(id);
+    return await redis.hset(key, field, value);
+  }
+
+  static async deleteHashField(id: string, key: string, field: string) {
+    const redis = await this.getConnection(id);
+    return await redis.hdel(key, field);
+  }
+
+  static async updateList(id: string, key: string, index: number, value: string) {
+    const redis = await this.getConnection(id);
+    return await redis.lset(key, index, value);
+  }
+
+  static async addToList(id: string, key: string, value: string) {
+    const redis = await this.getConnection(id);
+    return await redis.rpush(key, value);
+  }
+
+  static async removeListValue(id: string, key: string, value: string, count: number = 1) {
+    const redis = await this.getConnection(id);
+    return await redis.lrem(key, count, value);
+  }
+
+  static async addSetMember(id: string, key: string, member: string) {
+    const redis = await this.getConnection(id);
+    return await redis.sadd(key, member);
+  }
+
+  static async removeSetMember(id: string, key: string, member: string) {
+    const redis = await this.getConnection(id);
+    return await redis.srem(key, member);
+  }
+
+  static async addZSetMember(id: string, key: string, score: number, member: string) {
+    const redis = await this.getConnection(id);
+    return await redis.zadd(key, score, member);
+  }
+
+  static async removeZSetMember(id: string, key: string, member: string) {
+    const redis = await this.getConnection(id);
+    return await redis.zrem(key, member);
+  }
+
   static async executeCommand(id: string, command: string, args: string[]) {
     const redis = await this.getConnection(id);
     // @ts-ignore

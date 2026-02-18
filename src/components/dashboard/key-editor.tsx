@@ -15,6 +15,10 @@ import {
   X,
   AlertTriangle
 } from 'lucide-react';
+import { HashEditor } from '@/components/dashboard/editors/HashEditor';
+import { ListEditor } from '@/components/dashboard/editors/ListEditor';
+import { SetEditor } from '@/components/dashboard/editors/SetEditor';
+import { ZSetEditor } from '@/components/dashboard/editors/ZSetEditor';
 
 export function KeyEditor() {
   const { currentConnection, selectedKey, setSelectedKey } = useRedisStore();
@@ -180,38 +184,56 @@ export function KeyEditor() {
 
       {/* Editor Content */}
       <div className="flex-1 flex flex-col p-6 min-h-0 overflow-hidden">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setViewMode('text')}
-              className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all ${
-                viewMode === 'text' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'
-              }`}
-            >
-              Raw Text
-            </button>
-            <button 
-              onClick={() => setViewMode('json')}
-              className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all ${
-                viewMode === 'json' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'
-              }`}
-            >
-              Pretty JSON
-            </button>
+        {details?.type === 'string' && (
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setViewMode('text')}
+                className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all ${
+                  viewMode === 'text' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                Raw Text
+              </button>
+              <button 
+                onClick={() => setViewMode('json')}
+                className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all ${
+                  viewMode === 'json' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                Pretty JSON
+              </button>
+            </div>
+            <div className="text-[10px] text-zinc-500 font-mono">
+              SIZE: {details?.size} bytes
+            </div>
           </div>
-          <div className="text-[10px] text-zinc-500 font-mono">
-            SIZE: {details?.size} {details?.type === 'string' ? 'bytes' : 'items'}
-          </div>
-        </div>
+        )}
 
-        <div className="flex-1 relative bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden group">
-          <textarea 
-            className="absolute inset-0 w-full h-full bg-transparent p-6 text-sm font-mono text-zinc-300 focus:outline-none resize-none custom-scrollbar selection:bg-red-500/30"
-            value={editedValue}
-            onChange={(e) => setEditedValue(e.target.value)}
-            spellCheck={false}
-          />
-        </div>
+        {details?.type === 'hash' ? (
+             <HashEditor data={details.value} keyName={selectedKey} />
+        ) : details?.type === 'list' ? (
+             <ListEditor data={details.value} keyName={selectedKey} />
+        ) : details?.type === 'set' ? (
+             <SetEditor data={details.value} keyName={selectedKey} />
+        ) : details?.type === 'zset' ? (
+             <ZSetEditor data={details.value} keyName={selectedKey} />
+        ) : (
+            <div className="flex-1 relative bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden group">
+              <textarea 
+                className="absolute inset-0 w-full h-full bg-transparent p-6 text-sm font-mono text-zinc-300 focus:outline-none resize-none custom-scrollbar selection:bg-red-500/30"
+                value={editedValue}
+                onChange={(e) => setEditedValue(e.target.value)}
+                spellCheck={false}
+                readOnly={details?.type !== 'string'} // Only string editable via text area for now
+              />
+               {details?.type !== 'string' && (
+                  <div className="absolute top-2 right-2 px-2 py-1 bg-zinc-800 text-zinc-400 text-xs rounded opacity-50 pointer-events-none">
+                    Read Only (Stream/Other)
+                  </div>
+               )}
+            </div>
+        )}
       </div>
 
       {/* Delete Confirmation Modal */}

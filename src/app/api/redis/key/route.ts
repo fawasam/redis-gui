@@ -49,9 +49,41 @@ export async function PUT(request: Request) {
   try {
     if (type === 'string') {
       await RedisService.updateString(connectionId, key, value, ttl);
+    } else if (type === 'hash') {
+      const { action, field } = body;
+      if (action === 'delete') {
+        await RedisService.deleteHashField(connectionId, key, field);
+      } else {
+        await RedisService.updateHash(connectionId, key, field, value);
+      }
+    } else if (type === 'list') {
+      const { action, index } = body;
+      if (action === 'delete') {
+        await RedisService.removeListValue(connectionId, key, value);
+      } else if (action === 'add') {
+         await RedisService.addToList(connectionId, key, value);
+      } else {
+         await RedisService.updateList(connectionId, key, index, value);
+      }
+    } else if (type === 'set') {
+      const { action, member } = body; // member in body might be mapped to 'value' or specific field? 
+      // Let's assume 'value' holds the member name for consistency with simple editor, or explicit 'member' field
+      const val = member || value;
+      if (action === 'delete') {
+        await RedisService.removeSetMember(connectionId, key, val);
+      } else {
+        await RedisService.addSetMember(connectionId, key, val);
+      }
+    } else if (type === 'zset') {
+      const { action, score, member } = body;
+      const val = member || value;
+      if (action === 'delete') {
+        await RedisService.removeZSetMember(connectionId, key, val);
+      } else {
+        await RedisService.addZSetMember(connectionId, key, score, val);
+      }
     } else {
-      // TODO: Handle other types for updates
-      return NextResponse.json({ error: 'Update for this type not yet implemented' }, { status: 400 });
+      return NextResponse.json({ error: `Update for type ${type} not supported` }, { status: 400 });
     }
     return NextResponse.json({ success: true });
   } catch (error: any) {
