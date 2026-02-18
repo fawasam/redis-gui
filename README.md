@@ -34,9 +34,22 @@ A production-ready, high-performance Redis management GUI built with Next.js 15,
    ```
 
 2. **Configure environment**:
-   Create a `.env` file (one has been automatically created for you):
-   ```
-   ENCRYPTION_KEY=your_secure_secret
+   Create a `.env` file based on `.env.example`:
+   ```env
+   # Encryption Key for securing connection details (Required)
+   ENCRYPTION_KEY=your_secure_secret_key_here
+
+   # Application URL (Required for absolute URLs)
+   NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+   # MongoDB Connection String (Required for user data)
+   MONGODB_URI=mongodb://localhost:27017/redis-gui
+
+   # JWT Secret for authentication (Required)
+   JWT_SECRET=your_jwt_secret_key_here
+
+   # Node Environment (Optional, defaults to development)
+   NODE_ENV=development
    ```
 
 3. **Run the development server**:
@@ -82,5 +95,4 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) a
 This project is licensed under the [MIT License](LICENSE).
 
 
----
-Built with ❤️ by Antigravity
+
